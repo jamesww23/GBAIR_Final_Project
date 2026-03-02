@@ -1,0 +1,15 @@
+{
+  "name": "company-wiki-mvp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:server": "cd server && npm install",
+    "install:client": "cd client && npm install",
+    "build:client": "cd client && npm run build",
+    "postinstall": "npm run install:server && npm run install:client && npm run build:client",
+    "start": "node server/src/index.js",
+    "seed": "node server/src/seed.js",
+    "dev:server": "cd server && npm start",
+    "dev:client": "cd client && npm run dev"
+  }
+}

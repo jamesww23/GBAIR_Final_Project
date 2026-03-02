@@ -10,6 +10,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
@@ -31,6 +32,14 @@ app.get('/api/health', async (_req, res) => {
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });
   }
+});
+
+// ── Serve built React client in production ────────────────
+const clientDist = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+app.get('*', (_req, res, next) => {
+  if (_req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 // ── Start ─────────────────────────────────────────────────
