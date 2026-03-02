@@ -1,0 +1,13 @@
+{
+  "name": "gbair-final-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd company-wiki-mvp/server && npm install && cd ../client && npm install && npm run build",
+    "start": "node company-wiki-mvp/server/src/index.js",
+    "seed": "node company-wiki-mvp/server/src/seed.js"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
