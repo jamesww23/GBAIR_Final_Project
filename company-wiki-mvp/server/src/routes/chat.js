@@ -8,7 +8,7 @@ const { getStockMock, getNewsMock } = require('./external');
 
 const router = Router();
 
-const STOCK_RE = /\b(stock|share|price|ticker|market|trading|nxdy)\b/i;
+const STOCK_RE = /\b(stock|share|price|ticker|market|trading|066570|krx)\b/i;
 const NEWS_RE = /\b(news|headline|article|press|announcement)\b/i;
 
 router.post('/', async (req, res) => {
@@ -59,7 +59,7 @@ router.post('/', async (req, res) => {
     const usedAccessLevels = [...new Set(chunks.map((c) => c.access_level))];
 
     // System prompt
-    const systemPrompt = `You are the Nexus Dynamics company knowledge assistant.
+    const systemPrompt = `You are the LG Electronics company knowledge assistant.
 
 RULES — follow these strictly:
 1. Answer ONLY using the CONTEXT BLOCKS below. Do not invent information.

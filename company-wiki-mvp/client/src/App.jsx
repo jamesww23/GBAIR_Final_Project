@@ -59,7 +59,7 @@ function ChatPanel() {
   return (
     <div>
       <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', minHeight: 300, maxHeight: 500, overflowY: 'auto', marginBottom: 12, padding: '8px 0' }}>
-        {messages.length === 0 && <p style={{ color: '#888', textAlign: 'center', marginTop: 40 }}>Ask a question about Nexus Dynamics...</p>}
+        {messages.length === 0 && <p style={{ color: '#888', textAlign: 'center', marginTop: 40 }}>Ask a question about LG Electronics...</p>}
         {messages.map((m, i) => (
           <div key={i} style={S.msg(m.role === 'user')}>
             <div>{m.text}</div>
@@ -173,7 +173,7 @@ function ExternalPanel() {
         <h3 style={{ marginTop: 0, marginBottom: 12 }}>Stock – {stock?.ticker || '...'}</h3>
         {stock && (
           <>
-            <div style={S.stockPrice}>${stock.last_price.toFixed(2)}</div>
+            <div style={S.stockPrice}>{stock.currency === 'KRW' ? '₩' : '$'}{stock.last_price.toLocaleString()}</div>
             <div style={{ color: stock.change_90d_pct >= 0 ? '#28a745' : '#e74c3c', fontWeight: 600, marginBottom: 12 }}>
               {stock.change_90d_pct >= 0 ? '+' : ''}{stock.change_90d_pct}% (90d)
             </div>
@@ -220,7 +220,7 @@ export default function App() {
   return (
     <div style={S.body}>
       <div style={S.header}>
-        <span style={S.brand}>Nexus Dynamics Wiki</span>
+        <span style={S.brand}>LG Electronics Wiki</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 13, opacity: 0.8 }}>Role:</span>
           <select style={S.roleSelect} value={role} onChange={handleRoleChange}>
