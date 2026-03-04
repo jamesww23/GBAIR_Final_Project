@@ -5,8 +5,8 @@ if (!process.env.OPENAI_API_KEY) {
   console.error('FATAL: OPENAI_API_KEY environment variable is required.');
   process.exit(1);
 }
-if (!process.env.DATABASE_URL) {
-  console.error('FATAL: DATABASE_URL environment variable is required.');
+if (!process.env.DATABASE_URL && !process.env.DATABASE_PUBLIC_URL) {
+  console.error('FATAL: DATABASE_URL or DATABASE_PUBLIC_URL environment variable is required.');
   process.exit(1);
 }
 
