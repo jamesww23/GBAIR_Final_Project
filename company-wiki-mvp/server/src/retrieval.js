@@ -2,18 +2,23 @@ const pool = require('./db');
 
 /**
  * Full-text search with ACL enforcement.
- *
- * @param {string}   queryText      - user's search query
- * @param {string[]} accessLevels   - allowed access levels for the user's role
- * @param {object}   opts
- * @param {number}   opts.topK      - number of results (default 8)
- * @param {string}   opts.docType   - optional filter (PROJECT, POLICY, COMM)
- * @returns {Promise<Array>}
+ * Uses OR-based tsquery for broad matching, with ILIKE fallback.
  */
 async function searchChunks(queryText, accessLevels, { topK = 8, docType = null } = {}) {
-  // Convert query to tsquery: split words and join with &
-  const words = queryText.trim().split(/\s+/).filter(Boolean);
-  const tsQuery = words.map(w => w.replace(/[^\w]/g, '')).filter(Boolean).join(' | ');
+  // Extract meaningful words (3+ chars, skip common question words)
+  const stopWords = new Set(['what', 'which', 'where', 'when', 'how', 'who', 'why', 'does', 'the', 'and', 'for', 'are', 'this', 'that', 'with', 'from', 'have', 'has', 'can', 'will', 'about', 'tell', 'please']);
+  const words = queryText.trim().toLowerCase()
+    .split(/\s+/)
+    .map(w => w.replace(/[^\w]/g, ''))
+    .filter(w => w.length > 2 && !stopWords.has(w));
+
+  if (words.length === 0) {
+    // No meaningful words — return empty
+    return [];
+  }
+
+  // Build OR-based tsquery for broad matching
+  const tsQuery = words.join(' | ');
 
   const params = [tsQuery, accessLevels];
   let paramIdx = 3;
@@ -48,7 +53,43 @@ async function searchChunks(queryText, accessLevels, { topK = 8, docType = null 
   `;
   params.push(topK);
 
-  const result = await pool.query(sql, params);
+  let result = await pool.query(sql, params);
+
+  // Fallback: if full-text search returns nothing, use ILIKE keyword matching
+  if (result.rows.length === 0) {
+    const likeConditions = words.map((_, i) => `dc.content ILIKE $${i + 3}`);
+    const likeParams = words.map(w => `%${w}%`);
+
+    let fallbackSql = `
+      SELECT
+        dc.doc_id,
+        dc.chunk_id,
+        d.title,
+        d.source_ref,
+        dc.content AS chunk_content,
+        d.access_level,
+        d.doc_type,
+        d.owner,
+        d.status,
+        1.0 AS similarity
+      FROM document_chunks dc
+      JOIN documents d ON dc.doc_id = d.id
+      WHERE d.access_level = ANY($1)
+        AND (${likeConditions.join(' OR ')})
+    `;
+
+    const fallbackParams = [accessLevels, topK, ...likeParams];
+
+    if (docType) {
+      fallbackSql += ` AND d.doc_type = $${words.length + 3}`;
+      fallbackParams.push(docType);
+    }
+
+    fallbackSql += ` LIMIT $2`;
+
+    result = await pool.query(fallbackSql, fallbackParams);
+  }
+
   return result.rows;
 }
 
