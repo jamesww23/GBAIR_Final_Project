@@ -1,7 +1,6 @@
 const { Router } = require('express');
 const pool = require('../db');
 const { resolveRole, accessLevelsForRole } = require('../acl');
-const { embed } = require('../embeddings');
 const { searchChunks } = require('../retrieval');
 const { chatCompletion } = require('../llm');
 const { getStockMock, getNewsMock } = require('./external');
@@ -45,9 +44,8 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Vector search with ACL
-    const [queryEmbedding] = await embed(message);
-    const chunks = await searchChunks(queryEmbedding, accessLevels);
+    // Full-text search with ACL
+    const chunks = await searchChunks(message, accessLevels);
 
     // Build internal context
     for (const c of chunks) {
