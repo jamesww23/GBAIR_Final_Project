@@ -1,7 +1,13 @@
 require('dotenv').config();
 
+if (!process.env.OPENAI_API_KEY) {
+  console.error('FATAL: OPENAI_API_KEY is required for seeding (embedding generation).');
+  process.exit(1);
+}
+
 const pool = require('./db');
 const { chunkText } = require('./chunking');
+const { embedBatch } = require('./embeddings');
 
 // ================================================================
 //  SEED DATA — LG Electronics Inc.
@@ -219,16 +225,26 @@ async function seed() {
   }
   console.log(`  Total chunks: ${allChunks.length}`);
 
-  console.log('Inserting chunks with full-text search vectors...');
-  for (const c of allChunks) {
+  console.log('Generating embeddings...');
+  const chunkTexts = allChunks.map((c) => c.content);
+  const embeddings = await embedBatch(chunkTexts);
+
+  console.log('Inserting chunks...');
+  for (let i = 0; i < allChunks.length; i++) {
+    const c = allChunks[i];
+    const vectorStr = `[${embeddings[i].join(',')}]`;
     await pool.query(
-      `INSERT INTO document_chunks (doc_id, chunk_index, content, tsv)
-       VALUES ($1, $2, $3, to_tsvector('english', $3))`,
-      [c.doc_id, c.chunk_index, c.content]
+      `INSERT INTO document_chunks (doc_id, chunk_index, content, embedding)
+       VALUES ($1, $2, $3, $4::vector)`,
+      [c.doc_id, c.chunk_index, c.content, vectorStr]
     );
   }
 
-  console.log('Analyzing table...');
+  console.log('Rebuilding HNSW index...');
+  await pool.query('DROP INDEX IF EXISTS idx_chunks_embedding');
+  await pool.query(
+    'CREATE INDEX idx_chunks_embedding ON document_chunks USING hnsw (embedding vector_cosine_ops)'
+  );
   await pool.query('ANALYZE document_chunks');
 
   console.log('Seed complete!');

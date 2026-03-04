@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const pool = require('../db');
 const { resolveRole, accessLevelsForRole } = require('../acl');
+const { embed } = require('../embeddings');
 const { searchChunks } = require('../retrieval');
 const { chatCompletion } = require('../llm');
 
@@ -23,8 +24,9 @@ router.post('/', async (req, res) => {
 
     const accessLevels = accessLevelsForRole(role);
 
-    // Full-text search project docs only
-    const chunks = await searchChunks(idea, accessLevels, {
+    // Embed the idea and search project docs only
+    const [queryEmbedding] = await embed(idea);
+    const chunks = await searchChunks(queryEmbedding, accessLevels, {
       topK: 20,
       docType: 'PROJECT',
     });

@@ -1,7 +1,8 @@
 -- Company Wiki MVP - Database Schema
--- Requires PostgreSQL 15+
+-- Requires PostgreSQL 15+ with pgvector extension
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- ============================================================
 -- Documents table: unified store for projects, policies, comms
@@ -24,14 +25,14 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 -- ============================================================
--- Document chunks with full-text search
+-- Document chunks with vector embeddings
 -- ============================================================
 CREATE TABLE IF NOT EXISTS document_chunks (
   chunk_id    uuid    PRIMARY KEY DEFAULT uuid_generate_v4(),
   doc_id      uuid    NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   chunk_index int     NOT NULL,
   content     text    NOT NULL,
-  tsv         tsvector
+  embedding   vector(1536)
 );
 
 -- ============================================================
@@ -51,5 +52,6 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_documents_access_doctype ON documents(access_level, doc_type);
 CREATE INDEX IF NOT EXISTS idx_chunks_doc_id ON document_chunks(doc_id);
 
--- GIN index for full-text search
-CREATE INDEX IF NOT EXISTS idx_chunks_tsv ON document_chunks USING gin(tsv);
+-- HNSW index for vector similarity search (cosine distance)
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding
+  ON document_chunks USING hnsw (embedding vector_cosine_ops);
